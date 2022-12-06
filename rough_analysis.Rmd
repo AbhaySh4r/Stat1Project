@@ -29,6 +29,6 @@ We can see in the dataset that there is a difference in slope/intercept values p
 n_means <- aov(SalePrice ~ Neighborhood, data = a1_set)
 mean_diff <- TukeyHSD(n_means, conf.level = 0.95)
 mean_diff
-fit <- lm(SalePrice ~ Neighborhood, data = a1_set)
+fit <- lm(SalePrice ~ GrLivArea + Neighborhood + GrLivArea*Neighborhood, data = a1_set)
 ```
 
