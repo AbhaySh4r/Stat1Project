@@ -1,7 +1,7 @@
 
 For the first dataset, we are looking at houses are are only within the [NAmes, Edwards, BrkSide neighborhoods] and are looking at how 
 
-SalePrice ~ SqFt (GrLIvArea) 
+SalePrice ~ SqFt (GrLIvArea) + Neighborhood 
 
 and if SalesPrice depends on neighborhood. 
 
@@ -25,10 +25,10 @@ a1_set %>% ggplot(aes(x = SalePrice/10000, fill = Neighborhood)) + geom_histogra
 We can see in the dataset that there is a difference in slope/intercept values per group 
 
 ```{r}
-#drive home a comparision in means to signify a difference in mean values.
+#Comparison of Means/Coefficients to signify a difference in sample groups from different neighborhoods.
 n_means <- aov(SalePrice ~ Neighborhood, data = a1_set)
 mean_diff <- TukeyHSD(n_means, conf.level = 0.95)
 mean_diff
-fit <- lm(SalePrice ~ Neighborhood, data = a1_set)
+fit <- lm(SalePrice ~ GrLivArea + Neighborhood + GrLivArea*Neighborhood, data = a1_set)
 ```
 
