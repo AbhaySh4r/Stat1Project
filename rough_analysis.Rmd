@@ -1,0 +1,34 @@
+
+For the first dataset, we are looking at houses are are only within the [NAmes, Edwards, BrkSide neighborhoods] and are looking at how 
+
+SalePrice ~ SqFt (GrLIvArea) 
+
+and if SalesPrice depends on neighborhood. 
+
+```{r echo=FALSE}
+library(tidyverse)
+library(plotly)
+
+housing = read.csv(file = "train.csv")
+a1_set = housing %>% select(SalePrice, Neighborhood, GrLivArea) %>% filter( Neighborhood == c("NAmes", "Edwards", "BrkSide"))
+```
+
+Initializing any required packages and calling in the data with some light filtering, we can take a look at the dataset and visualize what the datalooks like with some cursory visuals. 
+
+```{r}
+
+a1_set %>% ggplot(aes(x = (GrLivArea), y = SalePrice/1000, color = Neighborhood)) + geom_point() + stat_smooth(method = "lm")
+
+a1_set %>% ggplot(aes(x = SalePrice/10000, fill = Neighborhood)) + geom_histogram(bins =20)
+```
+
+We can see in the dataset that there is a difference in slope/intercept values per group 
+
+```{r}
+#drive home a comparision in means to signify a difference in mean values.
+n_means <- aov(SalePrice ~ Neighborhood, data = a1_set)
+mean_diff <- TukeyHSD(n_means, conf.level = 0.95)
+mean_diff
+fit <- lm(SalePrice ~ Neighborhood, data = a1_set)
+```
+
