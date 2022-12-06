@@ -1,0 +1,84 @@
+---
+title: "Statistics Project"
+output: html_notebook
+---
+
+# ANALYSIS 1 
+
+Goal: Estimate how SalesPrice of the house is related to the square footage of the living area of the house & if SalesPrice (and its relationship to square footage) depends on which neighborhood the house is located in. We are only interested at looking at houses in the NAmes, Edwards & BrkSide neighborhoods. 
+
+## Packages
+```{r}
+library(dplyr)
+library(readr)
+library(tidyverse)
+```
+
+## Read in data
+```{r}
+train <- read.csv("train.csv")
+test <- read.csv("test.csv")
+
+head(train)
+head(test)
+```
+## Filter data on neighborhoods 
+```{r}
+train_a1 <- dplyr::filter(train,Neighborhood =="Edwards" | Neighborhood =="NAmes" | Neighborhood == "BrkSide")
+test_a1 <- dplyr::filter(test,Neighborhood =="Edwards" | Neighborhood =="NAmes" | Neighborhood == "BrkSide")
+
+head(train_a1)
+head(test_a1)
+```
+## Summary Statistics
+```{r}
+summary(train_a1)
+summary(test_a1)
+```
+## EDA 
+```{r}
+train_a1 %>% ggplot(aes(x = (GrLivArea), y = SalePrice/1000, color = Neighborhood)) + geom_point() + stat_smooth(method = "lm")
+
+train_a1 %>% ggplot(aes(x = SalePrice/10000, fill = Neighborhood)) + geom_histogram(bins =20)
+
+train_a1 %>% ggplot(aes(x = GrLivArea, fill = Neighborhood)) + geom_histogram(bins =20)
+```
+## Log Transforms 
+```{r}
+# histograms with log transform on each individual variables
+train_a1 %>% ggplot(aes(x = log(SalePrice/10000), fill = Neighborhood)) + geom_histogram(bins =20)
+
+train_a1 %>% ggplot(aes(x = log(GrLivArea), fill = Neighborhood)) + geom_histogram(bins =20)
+
+train_a1 %>% ggplot(aes(x = log(GrLivArea), y = SalePrice/1000, color = Neighborhood)) + geom_point() + stat_smooth(method = "lm")
+
+train_a1 %>% ggplot(aes(x = (GrLivArea), y = log(SalePrice/1000), color = Neighborhood)) + geom_point() + stat_smooth(method = "lm")
+
+train_a1 %>% ggplot(aes(x = log(GrLivArea), y = log(SalePrice/1000), color = Neighborhood)) + geom_point() + stat_smooth(method = "lm")
+```
+
+# Linear Model
+```{r}
+fit <- lm(log(SalePrice) ~ log(GrLivArea) + Neighborhood + GrLivArea*Neighborhood, data = train_a1)
+summary(fit)
+confint(fit)
+
+plot(fit)
+```
+# ANOVA 
+```{r}
+res.aov <- aov(log(SalePrice)~log(GrLivArea)+Neighborhood+Neighborhood*GrLivArea, data = train_a1)
+summary(res.aov)
+```
+```{r}
+library(car)
+# QQPlot
+qqPlot(log(train_a1$SalePrice))
+
+# histogram of residuals 
+h <- hist(fit$residuals, breaks = 10, density = 10,col = "lightgray",main = "Residuals") 
+xfit <- seq(min(fit$residuals), max(fit$residuals), length = 40) 
+yfit <- dnorm(xfit, mean = mean(fit$residuals), sd = sd(fit$residuals)) 
+yfit <- yfit * diff(h$mids[1:2]) * length(fit$residuals) 
+```
+
