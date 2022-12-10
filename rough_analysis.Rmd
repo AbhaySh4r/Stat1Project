@@ -240,7 +240,6 @@ write.csv(real_sp_joined, "./Kaggle_stepwiset1_testset.csv", row.names = FALSE)
 
 ```
 
-
 The rudimentary approach of numeric/reduced linearity set receives a Kaggle score of 0.20855. While is is interesting and good given the novel approach of the selection model, it's troubling to see that all 3 models returned the exact same Kaggle score, down to the last decimal. This may indicate that the models are adding/subtracting parameters to result in the exact same parameter list each time. This should be further investigated. 
 
 
