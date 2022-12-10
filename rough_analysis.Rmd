@@ -165,8 +165,10 @@ corrplot(cor(t1)) #visualize correlation to identify which plots are correlated.
 t1fit = lm(SalePrice ~. , data = t1)
 
 backt1 = ols_step_backward_p(t1fit, prem = 0.05, details = FALSE)
-forwardt1 = ols_step_forward_p(t1fit, penter = 0.05, details = FALSE)               #the p-values for these should be fiddled
-stepwiset1 = ols_step_both_p(t1fit, pent = 0.05, prem =0.05, details = FALSE)       #with to test a better selection set, although could be unnec. 
+forwardt1 = ols_step_forward_p(t1fit, penter = 0.05, details = FALSE)               #the p-values for these should be fiddled with, 
+stepwiset1 = ols_step_both_p(t1fit, pent = 0.05, prem =0.05, details = FALSE)
+
+mystery4thsetWIP
 
 #---------------------------------Summary Stats of the produced RL sets
 summary(backt1$model)
@@ -200,6 +202,8 @@ Now that we have generated 3 models (Need 4!!!) we can predict the saleprice on 
 #as well to account for the change in base.
 test_housing$LotArea = log(test_housing$LotArea)
 
+#--------------------------------------------- Backwards Elimination Prediction: 
+
 back_pred = predict(backt1$model, test_housing) 
 
 #Since the original dataset was transformed, we need to counter-transform to reobtain the
@@ -216,8 +220,27 @@ real_bp_joined[is.na(real_bp_joined)]<-10000 #if there are any NA, set them to a
 
 write.csv(real_bp_joined, "./Kaggle_backt1_testset.csv", row.names = FALSE)
 
+#-------------------------------------------- Forwards Selection Prediction: 
+
+forward_pred = predict(forwardt1$model, test_housing)
+real_forward = exp(forward_pred)
+real_fp_joined = data.frame(test_housing$Id, real_forward)
+real_fp_joined[is.na(real_fp_joined)]<-10000
+colnames(real_fp_joined) = c("Id", "SalePrice")
+write.csv(real_bp_joined, "./Kaggle_forwardt1_testset.csv", row.names = FALSE)
+
+#-------------------------------------------- Stepwise Selection Prediction: 
+
+stepwise_pred = predict(stepwiset1$model, test_housing)
+real_step = exp(stepwise_pred)
+real_sp_joined = data.frame(test_housing$Id, real_step)
+real_sp_joined[is.na(real_sp_joined)]<-10000
+colnames(real_sp_joined) = c("Id", "SalePrice")
+write.csv(real_sp_joined, "./Kaggle_stepwiset1_testset.csv", row.names = FALSE)
+
 ```
 
-The rudimentary approach of numeric/reduced linearity set receives a Kaggle score of 0.20
+
+The rudimentary approach of numeric/reduced linearity set receives a Kaggle score of 0.20855. While is is interesting and good given the novel approach of the selection model, it's troubling to see that all 3 models returned the exact same Kaggle score, down to the last decimal. This may indicate that the models are adding/subtracting parameters to result in the exact same parameter list each time. This should be further investigated. 
 
 
