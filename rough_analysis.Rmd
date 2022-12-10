@@ -8,8 +8,10 @@ and if SalesPrice depends on neighborhood.
 ```{r echo=FALSE}
 library(tidyverse)
 library(plotly)
+library(car)
 
 housing = read.csv(file = "train.csv")
+numeric_housing = housing %>% select_if(is.numeric)
 a1_set = housing %>% select(SalePrice, Neighborhood, GrLivArea) %>% filter( Neighborhood == c("NAmes", "Edwards", "BrkSide"))
 ```
 
@@ -30,5 +32,51 @@ n_means <- aov(SalePrice ~ Neighborhood, data = a1_set)
 mean_diff <- TukeyHSD(n_means, conf.level = 0.95)
 mean_diff
 fit <- lm(SalePrice ~ GrLivArea + Neighborhood + GrLivArea*Neighborhood, data = a1_set)
+```
+
+
+
+
+
+Analysis 2: 
+
+Rough approach to Forwards Selection / Backwards Elimination / Stepwise Selection model generation: 
+
+```{r}
+
+library(caret)
+train.control = trainControl(method = "cv", number = 10)
+step.model = train(SalePrice ~.-GarageArea, data = housing %>% select_if(is.numeric) %>% drop_na(), method = "leapBackward", trControl = train.control)
+step.model$modelInfo
+```
+
+
+For the process of forward feature selection or backwards feature elimination, we can use the olsrr package to do most of the calculations for us. This can be seen as follows: 
+
+```{r}
+#install.packages("olsrr")
+library(olsrr)
+
+#turning all character columns into factors for LR: 
+character_names = housing %>% select_if(is.character) %>% names()
+housing[character_names] = lapply(housing[character_names], factor)
+
+fit_numeric = lm(SalePrice ~., data = housing %>% select_if(is.numeric))
+
+#forwards selection: 
+forward = ols_step_forward_p(fit_numeric, penter = 0.05, details = FALSE)
+
+backwards = ols_step_backward_p(fit_numeric, prem = 0.05, details = FALSE)
+
+stepwise = ols_step_both_p(fit_numeric, pent = 0.05, prem =0.05, details = FALSE)
+```
+
+```{r}
+for(i in housing %>% names()){
+  print(nlevels(housing %>% select(i)))
+}
+
+
+lapply(housing[character_names], nlevels)
 ```
 
