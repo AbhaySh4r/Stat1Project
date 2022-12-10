@@ -1,21 +1,46 @@
 
-For the first dataset, we are looking at houses are are only within the [NAmes, Edwards, BrkSide neighborhoods] and are looking at how 
+For the first analysis, we are looking at houses are are only within the locale of [NAmes, Edwards, BrkSide neighborhoods] and at how Sale Price can possibly change
+with respect to the Size of the living area and the Neighborhood in which the property is located, which can be visualized with the equation: 
 
-SalePrice ~ SqFt (GrLIvArea) + Neighborhood 
+SalePrice ~ SqFt (GrLIvArea) + Neighborhood + GrLIvArea:Neighborhood
 
-and if SalesPrice depends on neighborhood. 
 
-```{r echo=FALSE}
+Pulling the data into R and performing some rudimentary cleaning; 
+
+```{r include=FALSE}
 library(tidyverse)
 library(plotly)
 library(car)
+library(caret)
+library(olsrr)
+```
 
+```{r RMSE function}
+ModelRMSE <- function(res){
+  retRMSE <- sqrt(mean(res^2))
+  return(retRMSE)
+}
+```
+
+
+```{r CVPress function}
+CVPress <- function(input_model){
+  pred_res = resid(input_model)/(1 - lm.influence(input_model)$hat)
+  press <- sum(pred_res^2)
+  return(press)
+}
+```
+
+
+```{r}
 housing = read.csv(file = "train.csv")
+test_housing = read.csv(file = "test.csv")
+
 numeric_housing = housing %>% select_if(is.numeric)
 a1_set = housing %>% select(SalePrice, Neighborhood, GrLivArea) %>% filter( Neighborhood == c("NAmes", "Edwards", "BrkSide"))
 ```
 
-Initializing any required packages and calling in the data with some light filtering, we can take a look at the dataset and visualize what the datalooks like with some cursory visuals. 
+We can take a look at the dataset and visualize what the datalooks like with some cursory visuals. During this step, we want to analyze any heavy correlation that the dataset might have, and account for it in any of our developing models;  
 
 ```{r}
 
@@ -24,14 +49,21 @@ a1_set %>% ggplot(aes(x = (GrLivArea), y = SalePrice/1000, color = Neighborhood)
 a1_set %>% ggplot(aes(x = SalePrice/10000, fill = Neighborhood)) + geom_histogram(bins =20)
 ```
 
-We can see in the dataset that there is a difference in slope/intercept values per group 
+From visual inspection, we can identify that there is a visual difference in slope/intercept values per group, and can use methods to identify and quantify what these values are. 
 
 ```{r}
 #Comparison of Means/Coefficients to signify a difference in sample groups from different neighborhoods.
+### comparison of means for the groups
 n_means <- aov(SalePrice ~ Neighborhood, data = a1_set)
 mean_diff <- TukeyHSD(n_means, conf.level = 0.95)
 mean_diff
-fit <- lm(SalePrice ~ GrLivArea + Neighborhood + GrLivArea*Neighborhood, data = a1_set)
+
+### linear model with interactions explained per group
+fit <- lm(SalePrice ~ log(GrLivArea) + Neighborhood + GrLivArea*Neighborhood, data = a1_set)
+summary(fit)
+
+#RMSE: 
+ModelRMSE(fit$residuals)
 ```
 
 
@@ -40,28 +72,33 @@ fit <- lm(SalePrice ~ GrLivArea + Neighborhood + GrLivArea*Neighborhood, data = 
 
 Analysis 2: 
 
+
+For Analysis 2, we need to generate 4 models using variations of parameters selected by Forwards Parameter Selection, Backwards Elimination, Stepwise Selection, and a 
+personalized custom approach. 
+
+Using these paramters, we can generate Adjusted R^2 values, CV Press statistics, and finally submit our model to the Kaggle website to obtain a "Kaggle Score" for each model. 
+
+This process begins as follows: 
+
 Rough approach to Forwards Selection / Backwards Elimination / Stepwise Selection model generation: 
 
 ```{r}
-
-library(caret)
-train.control = trainControl(method = "cv", number = 10)
-step.model = train(SalePrice ~.-GarageArea, data = housing %>% select_if(is.numeric) %>% drop_na(), method = "leapBackward", trControl = train.control)
-step.model$modelInfo
+#bad approach, maybe, I can't get it to work 
+#train.control = trainControl(method = "cv", number = 10)
+#step.model = train(SalePrice ~.-GarageArea, data = housing %>% select_if(is.numeric) %>% drop_na(), method = "leapBackward", trControl = train.control)
+#step.model$modelInfo
 ```
 
-
-For the process of forward feature selection or backwards feature elimination, we can use the olsrr package to do most of the calculations for us. This can be seen as follows: 
+For the process of forward feature selection or backwards feature elimination, we can use the `olsrr` package to do most of the selection work for us. This can be seen as follows: 
 
 ```{r}
 #install.packages("olsrr")
-library(olsrr)
 
 #turning all character columns into factors for LR: 
 character_names = housing %>% select_if(is.character) %>% names()
 housing[character_names] = lapply(housing[character_names], factor)
 
-fit_numeric = lm(SalePrice ~., data = housing %>% select_if(is.numeric))
+fit_numeric = lm(SalePrice ~., data = housing %>% select_if(is.numeric)) # does not account for categorical parameters !!!
 
 #forwards selection: 
 forward = ols_step_forward_p(fit_numeric, penter = 0.05, details = FALSE)
@@ -71,12 +108,46 @@ backwards = ols_step_backward_p(fit_numeric, prem = 0.05, details = FALSE)
 stepwise = ols_step_both_p(fit_numeric, pent = 0.05, prem =0.05, details = FALSE)
 ```
 
+From these methods we can pull our the corresponding models and analyze the statistics as well as the parameters that we chosen, to verify that first, there was a reduction in selection in the parameters for the LM and second, 
+
+
+This step might not be necessary but could improve the quality of the model. Analysis shows a marginal improvement to R^2 and marginal deteriorate to PRESS Stat when rm'ing outliers. 
+
+Outlier ID# : 692, 1183,  Excessively Expensive > 700k
+Outlier ID# : 314, 336, 256, 707    Excessively Large > 100k sqr ft. 
+
+
 ```{r}
-for(i in housing %>% names()){
-  print(nlevels(housing %>% select(i)))
-}
+#I'm not sure if this is the best way to do it, but it highlights the requirement of the transform
 
+boxplot(numeric_housing) #<-visualize outliers
 
-lapply(housing[character_names], nlevels)
+#filtered_nh = numeric_housing[-c(692, 1183, 314, 336, 256, 707), ] #filters out outliers 
+#filtered_nh$SalePrice = log(filtered_nh$SalePrice) 
+#filtered_nh$LotArea = log(filtered_nh$LotArea)
+
+transformed_numeric = numeric_housing
+transformed_numeric$SalePrice = log(transformed_numeric$SalePrice)
+transformed_numeric$LotArea = log(transformed_numeric$LotArea)
+
+boxplot(transformed_numeric)
+
+transformed_fit = lm(SalePrice ~., data = transformed_numeric)
+
+transForward = ols_step_forward_p(transformed_fit, penter = 0.05, details = FALSE)
+
+ModelRMSE(transForward$model$residuals) #see defined functions at top of document
+CVPress(transForward$model)
+
+#boxplot(filtered_nh)
+
+#filtered_fit_numeric = lm(SalePrice ~., data = filtered_nh)                               #outlier filtered approach
+
+#f_forward = ols_step_forward_p(filtered_fit_numeric, penter = 0.05, details = FALSE)
+
+#ModelRMSE(f_forward$model$residuals) #see defined functions at top of document
+#CVPress(f_forward$model)
 ```
+
+
 
