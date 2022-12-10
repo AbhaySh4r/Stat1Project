@@ -13,7 +13,10 @@ library(plotly)
 library(car)
 library(caret)
 library(olsrr)
+library(corrplot)
 ```
+
+Defining functions for future use, I didn't know where to put this: 
 
 ```{r RMSE function}
 ModelRMSE <- function(res){
@@ -73,7 +76,7 @@ ModelRMSE(fit$residuals)
 Analysis 2: 
 
 
-For Analysis 2, we need to generate 4 models using variations of parameters selected by Forwards Parameter Selection, Backwards Elimination, Stepwise Selection, and a 
+For Analysis 2, we need to generate 4 models using variations of parameters selected by Forwards Parameter Selection, Backwards Elimination, StepWise Selection, and a 
 personalized custom approach. 
 
 Using these paramters, we can generate Adjusted R^2 values, CV Press statistics, and finally submit our model to the Kaggle website to obtain a "Kaggle Score" for each model. 
@@ -102,16 +105,16 @@ fit_numeric = lm(SalePrice ~., data = housing %>% select_if(is.numeric)) # does 
 
 #forwards selection: 
 forward = ols_step_forward_p(fit_numeric, penter = 0.05, details = FALSE)
-
+#backwards
 backwards = ols_step_backward_p(fit_numeric, prem = 0.05, details = FALSE)
-
+#stepwise
 stepwise = ols_step_both_p(fit_numeric, pent = 0.05, prem =0.05, details = FALSE)
 ```
 
 From these methods we can pull our the corresponding models and analyze the statistics as well as the parameters that we chosen, to verify that first, there was a reduction in selection in the parameters for the LM and second, 
 
 
-This step might not be necessary but could improve the quality of the model. Analysis shows a marginal improvement to R^2 and marginal deteriorate to PRESS Stat when rm'ing outliers. 
+This step might not be necessary but could improve the quality of the model. Analysis shows a marginal improvement to R^2 and marginal deterioration to PRESS Stat when rm'ing outliers. 
 
 Outlier ID# : 692, 1183,  Excessively Expensive > 700k
 Outlier ID# : 314, 336, 256, 707    Excessively Large > 100k sqr ft. 
@@ -136,6 +139,7 @@ transformed_fit = lm(SalePrice ~., data = transformed_numeric)
 
 transForward = ols_step_forward_p(transformed_fit, penter = 0.05, details = FALSE)
 
+summary(transForward$model)
 ModelRMSE(transForward$model$residuals) #see defined functions at top of document
 CVPress(transForward$model)
 
@@ -147,6 +151,45 @@ CVPress(transForward$model)
 
 #ModelRMSE(f_forward$model$residuals) #see defined functions at top of document
 #CVPress(f_forward$model)
+```
+
+```{r Reduced Linearity Set}
+t1 = subset(transformed_numeric, select = -c(LotFrontage, MasVnrArea, GarageYrBlt, OverallQual, TotRmsAbvGrd, GarageCars, TotalBsmtSF, X1stFlrSF, X2ndFlrSF, FullBath )) #removal of largely correlated values to reduce multicollinearity (VIF /approx 1) and actually allow back-elimination to run, it wasn't running without a ton of errors without this. 
+
+corrplot(cor(t1)) #visualize correlation to identify which plots are correlated. After elimiation, it should be fairly sparsely correlated. 
+
+t1fit = lm(SalePrice ~. , data = t1)
+
+backt1 = ols_step_backward_p(t1fit, prem = 0.05, details = FALSE)
+forwardt1 = ols_step_forward_p(t1fit, penter = 0.05, details = FALSE)                #the p-values for these should be fiddled with to test a better selection set, although could be unnec. 
+stepwiset1 = ols_step_both_p(t1fit, pent = 0.05, prem =0.05, details = FALSE)
+
+#---------------------------------Summary Stats of the produced RL sets
+summary(backt1$model)
+vif(backt1$model)
+
+ModelRMSE(backt1$model$residuals)
+CVPress(backt1$model)
+#---------------------------------
+summary(forwardt1$model)
+vif(forwardt1$model)
+
+ModelRMSE(forwardt1$model$residuals)
+CVPress(forwardt1$model)
+#---------------------------------
+summary(stepwiset1$model)
+vif(stepwiset1$model)
+
+ModelRMSE(stepwiset1$model$residuals)
+CVPress(stepwiset1$model)
+
+
+```
+
+Now that we have generated 3 models (Need 4!!!) we can predict the saleprice on a test set of data, submit this modelled set to Kaggle to generate a Kaggle Score for the model. That is done as following; 
+
+```{r}
+
 ```
 
 
