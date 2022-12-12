@@ -38,6 +38,8 @@ fit <- lm(SalePrice ~ GrLivArea + Neighborhood + GrLivArea*Neighborhood, data = 
 summary(fit)
 #plot(fit)
 #plot(a1_set$SalePrice, a1_set$GrLivArea)
+
+#put the plots here
 ```
 
 We can see from visualizations of the plotted model and residuals of the analysis that a transform of variables would greatly improve the quality of the model and associated residuals. Applying a log - log transform and visualizing again, we see: 
@@ -48,6 +50,8 @@ summary(fit_transform)
 confint(fit_transform)
 #plot(log(a1_set$GrLivArea), log(a1_set$SalePrice))
 #plot(fit_transform)
+
+#put the plots here
 ```
 
 
@@ -127,6 +131,9 @@ fit_transform <- lm(log(SalePrice) ~ log(GrLivArea) + Neighborhood +
 summary(fit_transform)
 confint(fit_transform)
 
+
+ModelRMSE(fit$residuals) #RMSE value of 33802
+ModelRMSE(fit_transform$residuals) # RMSE Value of 0.1973
 ```
 
 \subsection{Code for generating selection model}
