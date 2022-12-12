@@ -55,7 +55,7 @@ confint(fit_transform)
 ```
 
 
-We find that the log-log transform has significantly reduced our residuals and given us a much better fit for the linear regression model, represented by bolstering our R^2 compared to the previous non-transformed model. We can see from the residual plots from the transformed fit that there are a few significantly high leverage/low residual points, and one out outlying point with a very high residual and leverage statistic. 
+We find that the log-log transform has significantly reduced our residuals and given us a much better fit for the linear regression model, represented by bolstering our R^2 compared to the previous non-transformed model. We can see from the residual plots from the transformed fit that there are a few significantly high leverage/low residual points, and one out outlying point with a very high residual and leverage statistic. We can also verify from the adjusted $R^2$ and RMSE from each model that the transformed model fits the data much better than the a non-transformed model. 
 
 We can also use these plots to analyse the assumptions for our linear model, from which we can see, after the log-log transform, there is not enough evidence to suggest a break in normality, visualized within the generated QQ plots, a statistically significant break in variance, visualized in the plot against both log-transformed variables, and that ... 
 
@@ -134,6 +134,14 @@ confint(fit_transform)
 
 ModelRMSE(fit$residuals) #RMSE value of 33802
 ModelRMSE(fit_transform$residuals) # RMSE Value of 0.1973
+
+
+# Internal CV Press of Models: 
+
+train.control1 = trainControl(method = "cv", number = 10)
+model1 <- train(SalePrice ~ GrLivArea + Neighborhood + GrLivArea*Neighborhood, data = a1_set, method = "lm", trControl = train.control1)
+CVPress(model1$model)# doesn't work atm
+
 ```
 
 \subsection{Code for generating selection model}
