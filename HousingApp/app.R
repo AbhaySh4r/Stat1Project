@@ -39,21 +39,31 @@ ui <- fluidPage(
 # Define server logic required to draw a histogram
 server <- function(input, output) {
     library(readr)
+    library(ggplot2)
+    library(dplyr)
+  
+  plot_data <- reactive({
+    inFile = input$file1
+    housing <-- read.csv(inFile$datapath)
+    
+    plot
+  }) 
     output$distPlot <- renderPlot({
-      housing <-- input$file1
-      read.csv(housing$datapath, header = input$header)
-      
-     # housing = read.csv("Stats1Project/train.csv")
       if(input$neighborhood == "NAmes"){
-       names= housing %>% filter(Neighborhood == "NAmes") %>% ggplot(aes(x = (GrLivArea), y = SalePrice/1000)) + geom_point() + ggtitle("NAmes Neighborhood Price of Home vs. Square Footage")
+        
+        plot = housing %>% filter(Neighborhood == "NAmes") %>% ggplot(aes(x = (GrLivArea), y = SalePrice/1000)) + geom_point() + ggtitle("NAmes Neighborhood Price of Home vs. Square Footage")
         
       } else if(input$neighborhood == "Edwards"){
-        edwards= housing %>% filter(Neighborhood == "Edwards") %>% ggplot(aes(x = (GrLivArea), y = SalePrice/1000)) + geom_point() + ggtitle("Edwards Neighborhood Price of Home vs. Square Footage")
+        plot = housing %>% filter(Neighborhood == "Edwards") %>% ggplot(aes(x = (GrLivArea), y = SalePrice/1000)) + geom_point() + ggtitle("Edwards Neighborhood Price of Home vs. Square Footage")
         
       } else if(input$neighborhood == "Brkside"){
-        brk= housing %>% filter(Neighborhood == "Brkside") %>% ggplot(aes(x = (GrLivArea), y = SalePrice/1000)) + geom_point() + ggtitle("Brkside Neighborhood Price of Home vs. Square Footage")
-
+        plot = housing %>% filter(Neighborhood == "Brkside") %>% ggplot(aes(x = (GrLivArea), y = SalePrice/1000)) + geom_point() + ggtitle("Brkside Neighborhood Price of Home vs. Square Footage")
+        
       }
+      plot
+     
+     # housing = read.csv("Stats1Project/train.csv")
+
     })
 }
 
