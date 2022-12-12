@@ -255,6 +255,7 @@ CVPress(stepwiset1$model)
 
 ```
 ## Custom Model 
+
 ```{r}
 # Change categorical values to numeric
 housing2 = housing
@@ -278,10 +279,14 @@ housing2$BsmtQual <- as.numeric(factor(housing2$BsmtQual,
 normal_housing = housing 
 normal_set = normal_housing %>% select(SaleCondition) %>% filter( SaleCondition == c("Normal"))
 normal_housing = normal_housing %>% select_if(is.numeric)
+
+normal_housing$SalePrice = log(normal_housing$SalePrice)
+normal_housing$GrLivArea = log(normal_housing$GrLivArea)
+
 ```
 
 ```{r}
-t2 = subset(transformed_numeric, select = -c(LotFrontage, MasVnrArea, GarageYrBlt, OverallQual, TotRmsAbvGrd, GarageCars, TotalBsmtSF, X1stFlrSF, X2ndFlrSF, FullBath )) 
+t2 = subset(normal_housing, select = -c(LotFrontage, MasVnrArea, GarageYrBlt, OverallQual, TotRmsAbvGrd, GarageCars, TotalBsmtSF, X1stFlrSF, X2ndFlrSF, FullBath )) 
 #removal of largely correlated values to reduce multicollinearity (VIF /approx 1) and actually allow back-elimination to run,
 #it wasn't running without a ton of errors without this. 
 
@@ -365,6 +370,43 @@ real_sp_joined = data.frame(test_housing$Id, real_step)
 real_sp_joined[is.na(real_sp_joined)]<-10000
 colnames(real_sp_joined) = c("Id", "SalePrice")
 write.csv(real_sp_joined, "./Kaggle_stepwiset1_testset.csv", row.names = FALSE)
+
+
+#-------------------------------------------- Custom Model Prediction: 
+
+# Backwards Elimination
+test_housing$GrLivArea = log(test_housing$GrLivArea)
+back_pred2 = predict(backt2$model, test_housing) 
+head(back_pred2)
+#Since the original dataset was transformed, we need to counter-transform to reobtain the
+#untransformed data. 
+
+real_bp2 = exp(back_pred2)
+
+#combine with ID and export as .csv
+
+real_bp_joined2 = data.frame(test_housing$Id, real_bp2)
+colnames(real_bp_joined2) = c("Id", "SalePrice")
+real_bp_joined2[is.na(real_bp_joined2)]<-10000 #if there are any NA, set them to arbitrary 10k price. 
+
+head(real_bp_joined2)
+write.csv(real_bp_joined2, "./Kaggle_backt2_testset.csv", row.names = FALSE)
+
+# Forward Selection
+forward_pred2 = predict(forwardt2$model, test_housing)
+real_forward2 = exp(forward_pred2)
+real_fp_joined2 = data.frame(test_housing$Id, real_forward2)
+real_fp_joined2[is.na(real_fp_joined2)]<-10000
+colnames(real_fp_joined2) = c("Id", "SalePrice")
+write.csv(real_bp_joined2, "./Kaggle_forwardt2_testset.csv", row.names = FALSE)
+
+# Stepwise Selection 
+stepwise_pred2 = predict(stepwiset2$model, test_housing)
+real_step2 = exp(stepwise_pred2)
+real_sp_joined2 = data.frame(test_housing$Id, real_step2)
+real_sp_joined2[is.na(real_sp_joined2)]<-10000
+colnames(real_sp_joined2) = c("Id", "SalePrice")
+write.csv(real_sp_joined2, "./Kaggle_stepwiset2_testset.csv", row.names = FALSE)
 
 ```
 
