@@ -1,8 +1,10 @@
+
+
 Analysis 1: 
 
-
-For the first analysis, we are looking at houses are are only within the locale of [NAmes, Edwards, BrkSide neighborhoods] and at how Sale Price can possibly change
-with respect to the Size of the living area and the Neighborhood in which the property is located, which can be visualized with the equation: 
+## Restatement of the Problem 
+Estimate how SalesPrice of the house is related to the square footage of the living area of the house & if SalesPrice (and its relationship to square footage) depends on which neighborhood the house is located in. We are only interested at looking at houses in the NAmes, Edwards & BrkSide neighborhoods. 
+This relationship can be visualized with the equation: 
 
 SalePrice ~ SqFt (GrLIvArea) + Neighborhood + GrLIvArea:Neighborhood
 
@@ -52,7 +54,26 @@ We can take a look at the dataset and visualize what the datalooks like with som
 a1_set %>% ggplot(aes(x = (GrLivArea), y = SalePrice/1000, color = Neighborhood)) + geom_point() + stat_smooth(method = "lm")
 
 a1_set %>% ggplot(aes(x = SalePrice/10000, fill = Neighborhood)) + geom_histogram(bins =20)
+
+a1_set %>% ggplot(aes(x = GrLivArea, fill = Neighborhood)) + geom_histogram(bins =20)
+
 ```
+The histograms show both GrLivArea and Sales Price having a right skew distribution. We will examine different log transformations to see if we can obtain a more normal distribution suitable for our model. 
+
+## Log Transforms 
+```{r}
+# histograms with log transform on each individual variables
+train_a1 %>% ggplot(aes(x = log(SalePrice/10000), fill = Neighborhood)) + geom_histogram(bins =20)
+
+train_a1 %>% ggplot(aes(x = log(GrLivArea), fill = Neighborhood)) + geom_histogram(bins =20)
+
+train_a1 %>% ggplot(aes(x = log(GrLivArea), y = SalePrice/1000, color = Neighborhood)) + geom_point() + stat_smooth(method = "lm")
+
+train_a1 %>% ggplot(aes(x = (GrLivArea), y = log(SalePrice/1000), color = Neighborhood)) + geom_point() + stat_smooth(method = "lm")
+
+train_a1 %>% ggplot(aes(x = log(GrLivArea), y = log(SalePrice/1000), color = Neighborhood)) + geom_point() + stat_smooth(method = "lm")
+```
+Using a log transform on the GrLivArea and SalePrice variables, we achieve a more normal distribution for each variable which will be more conducive to use in our model. 
 
 From visual inspection, we can identify that there is a visual difference in slope/intercept values per group, and can use methods to identify and quantify what these values are. 
 
@@ -70,8 +91,45 @@ summary(fit)
 #RMSE: 
 ModelRMSE(fit$residuals)
 ```
+## Linear Models
 
+From a visual inspection of the Cook's D and residual plot, we notice there are 3 outliers: 
+  - ID 54
+  - ID 61, 
+  - ID 114
+```{r}
+fit1 <- lm(SalePrice ~ GrLivArea + Neighborhood + GrLivArea*Neighborhood, data = a1_set)
+summary(fit1)
+confint(fit1)
 
+plot(fit1)
+
+hist(fit1$residuals, col = "blue", main = "Histogram of Residuals")
+sqrt(mean(fit1$residuals^2)) #RMSE
+```
+
+### Remove Outliers 
+```{r}
+head(a1_set)
+a1_set2 = housing
+a1_set2 = a1_set2 [(!(a1_set2 $Id == "54") & !(a1_set2 $Id == "61") & !(a1_set2 $Id == "114") ),]
+head(a1_set2)
+
+a1_set2 = a1_set2 %>% select(SalePrice, Neighborhood, GrLivArea) %>% filter( Neighborhood == c("NAmes", "Edwards", "BrkSide"))
+head(a1_set2)
+```
+
+### Fit model without outliers 
+```{r}
+fit2 <- lm(log(SalePrice) ~ log(GrLivArea) + Neighborhood + GrLivArea*Neighborhood, data = a1_set2)
+summary(fit2)
+confint(fit2)
+
+plot(fit2)
+
+hist(fit2$residuals, col = "blue", main = "Histogram of Residuals")
+sqrt(mean(fit2$residuals^2)) #RMSE
+```
 
 
 
@@ -89,15 +147,16 @@ Rough approach to Forwards Selection / Backwards Elimination / Stepwise Selectio
 
 ```{r}
 #bad approach, maybe, I can't get it to work 
-#train.control = trainControl(method = "cv", number = 10)
-#step.model = train(SalePrice ~.-GarageArea, data = housing %>% select_if(is.numeric) %>% drop_na(), method = "leapBackward", trControl = train.control)
+train.control = trainControl(method = "cv", number = 10)
+step.model = train(SalePrice ~.-GarageArea, data = housing %>% select_if(is.numeric) %>% drop_na(), method = "leapBackward", trControl = train.control)
+pred(step.model, housing)
 #step.model$modelInfo
 ```
 
 For the process of forward feature selection or backwards feature elimination, we can use the `olsrr` package to do most of the selection work for us. This can be seen as follows: 
 
 ```{r}
-#install.packages("olsrr")
+install.packages("olsrr")
 
 #turning all character columns into factors for LR: 
 character_names = housing %>% select_if(is.character) %>% names()
@@ -141,6 +200,7 @@ transformed_fit = lm(SalePrice ~., data = transformed_numeric)
 
 transForward = ols_step_forward_p(transformed_fit, penter = 0.05, details = FALSE)
 
+transForward
 summary(transForward$model)
 ModelRMSE(transForward$model$residuals) #see defined functions at top of document
 CVPress(transForward$model)
@@ -168,7 +228,10 @@ backt1 = ols_step_backward_p(t1fit, prem = 0.05, details = FALSE)
 forwardt1 = ols_step_forward_p(t1fit, penter = 0.05, details = FALSE)               #the p-values for these should be fiddled with, 
 stepwiset1 = ols_step_both_p(t1fit, pent = 0.05, prem =0.05, details = FALSE)
 
-mystery4thsetWIP
+forwardt1
+backt1
+stepwiset1
+#mystery4thsetWIP
 
 #---------------------------------Summary Stats of the produced RL sets
 summary(backt1$model)
@@ -191,6 +254,71 @@ CVPress(stepwiset1$model)
 
 
 ```
+## Custom Model 
+```{r}
+# Change categorical values to numeric
+housing2 = housing
+housing2$Neighborhood <- as.numeric(factor(housing2$Neighborhood,
+                                                        levels = c("Blmngtn", "Blueste", "BrDale"),
+                                                        labels = c(2,1,0), ordered = TRUE))
+housing2$LotConfig <- as.numeric(factor(housing2$LotConfig,
+                                                        levels = c("Inside", "Corner", "CulDSac", "FR2", "FR3"),
+                                                        labels = c(4,3,2,1,0), ordered = TRUE))
+housing2$ExterQual <- as.numeric(factor(housing2$ExterQual,
+                                                        levels = c("Ex", "Gd", "TA", "Fa", "Po"),
+                                                        labels = c(4, 3, 2,1,0), ordered = TRUE))
+housing2$BsmtQual <- as.numeric(factor(housing2$BsmtQual,
+                                                        levels = c("Ex", "Gd", "TA", "Fa", "Po"),
+                                                        labels = c(4, 3, 2,1,0), ordered = TRUE))
+
+
+```
+```{r}
+# Only look at Normal Sales 
+normal_housing = housing 
+normal_set = normal_housing %>% select(SaleCondition) %>% filter( SaleCondition == c("Normal"))
+normal_housing = normal_housing %>% select_if(is.numeric)
+```
+
+```{r}
+t2 = subset(transformed_numeric, select = -c(LotFrontage, MasVnrArea, GarageYrBlt, OverallQual, TotRmsAbvGrd, GarageCars, TotalBsmtSF, X1stFlrSF, X2ndFlrSF, FullBath )) 
+#removal of largely correlated values to reduce multicollinearity (VIF /approx 1) and actually allow back-elimination to run,
+#it wasn't running without a ton of errors without this. 
+
+corrplot(cor(t2)) #visualize correlation to identify which plots are correlated. After elimiation, it should be fairly sparsely correlated. 
+
+t2fit = lm(SalePrice ~. , data = t2)
+
+backt2 = ols_step_backward_p(t2fit, prem = 0.05, details = FALSE)
+forwardt2 = ols_step_forward_p(t2fit, penter = 0.05, details = FALSE)               #the p-values for these should be fiddled with, 
+stepwiset2 = ols_step_both_p(t2fit, pent = 0.05, prem =0.05, details = FALSE)
+
+forwardt2
+backt2
+stepwiset2
+#mystery4thsetWIP
+
+#---------------------------------Summary Stats of the produced RL sets
+summary(backt2$model)
+vif(backt2$model)
+
+ModelRMSE(backt2$model$residuals)
+CVPress(backt2$model)
+#---------------------------------
+summary(forwardt2$model)
+vif(forwardt2$model)
+
+ModelRMSE(forwardt2$model$residuals)
+CVPress(forwardt2$model)
+#---------------------------------
+summary(stepwiset2$model)
+vif(stepwiset2$model)
+
+ModelRMSE(stepwiset2$model$residuals)
+CVPress(stepwiset2$model)
+
+```
+
 
 Now that we have generated 3 models (Need 4!!!) we can predict the saleprice on a test set of data, submit this modelled set to Kaggle to generate a Kaggle Score for the model and analyze whether our approach was correct or not. That is done as following; 
 

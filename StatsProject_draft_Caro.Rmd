@@ -16,8 +16,8 @@ library(tidyverse)
 
 ## Read in data
 ```{r}
-train <- read.csv("train.csv")
-test <- read.csv("test.csv")
+train <- read.csv("train.csv", header=TRUE, stringsAsFactors=TRUE)
+test <- read.csv("test.csv", header=TRUE, stringsAsFactors=TRUE)
 
 head(train)
 head(test)
@@ -34,8 +34,12 @@ head(test_a1)
 ```{r}
 summary(train_a1)
 summary(test_a1)
+
+str(train_a1)
 ```
 ## EDA 
+
+
 ```{r}
 train_a1 %>% ggplot(aes(x = (GrLivArea), y = SalePrice/1000, color = Neighborhood)) + geom_point() + stat_smooth(method = "lm")
 
@@ -57,15 +61,23 @@ train_a1 %>% ggplot(aes(x = (GrLivArea), y = log(SalePrice/1000), color = Neighb
 train_a1 %>% ggplot(aes(x = log(GrLivArea), y = log(SalePrice/1000), color = Neighborhood)) + geom_point() + stat_smooth(method = "lm")
 ```
 
-# Linear Model
+## Linear Model 
 ```{r}
-fit <- lm(log(SalePrice) ~ log(GrLivArea) + Neighborhood + GrLivArea*Neighborhood, data = train_a1)
-summary(fit)
-confint(fit)
+fit1 <- lm(log(SalePrice) ~ log(GrLivArea) + Neighborhood + GrLivArea*Neighborhood, data = train_a1)
+summary(fit1)
+confint(fit1)
 
-plot(fit)
+plot(fit1)
+
+hist(fit1$residuals, col = "blue", main = "Histogram of Residuals")
+plot(fit1$fitted.values,fit1$residuals, main = "Plot of Residuals v. Fitted Values")
+sqrt(mean(fit1$residuals^2)) #RMSE
 ```
-# ANOVA 
+```{r}
+
+```
+
+## ANOVA 
 ```{r}
 res.aov <- aov(log(SalePrice)~log(GrLivArea)+Neighborhood+Neighborhood*GrLivArea, data = train_a1)
 summary(res.aov)
@@ -76,9 +88,100 @@ library(car)
 qqPlot(log(train_a1$SalePrice))
 
 # histogram of residuals 
-h <- hist(fit$residuals, breaks = 10, density = 10,col = "lightgray",main = "Residuals") 
-xfit <- seq(min(fit$residuals), max(fit$residuals), length = 40) 
-yfit <- dnorm(xfit, mean = mean(fit$residuals), sd = sd(fit$residuals)) 
-yfit <- yfit * diff(h$mids[1:2]) * length(fit$residuals) 
+h <- hist(fit1$residuals, breaks = 10, density = 10,col = "lightgray",main = "Residuals") 
+xfit <- seq(min(fit1$residuals), max(fit1$residuals), length = 40) 
+yfit <- dnorm(xfit, mean = mean(fit1$residuals), sd = sd(fit1$residuals)) 
+yfit <- yfit * diff(h$mids[1:2]) * length(fit1$residuals) 
 ```
+
+
+##remove outliers
+```{r}
+
+```
+
+# ANALYSIS 2: MODELS 
+
+## EDA
+```{r}
+str(train)
+summary(train)
+```
+##
+### Missing data & Duplicates
+- NA means something in following: Alley, BsmtQual, BsmtCond, BsmtExposure, BsmtFinType1,BsmtFinType2, FireplaceQu, GarageType, GarageFinish, GarageQual, GarageCond, PoolQC, Fence, MiscFeature
+- Electrical has NAs but seems important? 
+```{r}
+colSums(is.na(train)) != 0
+
+# remove columns with NAs that have no meaning (from data description)
+train_clean = subset(train, select= -c(LotFrontage,MasVnrType, MasVnrArea))
+
+```
+
+
+```{r}
+train[duplicated(train),]
+
+```
+## Look at distribution of SalePrice &  LotArea
+
+## Replace N/A 
+```{r}
+
+train_clean[is.na(train_clean)] = "None"
+summary(train_clean )
+```
+
+##  Feature Selection 
+```{r}
+library(caret)
+# Feature Selection
+# We need to find features which are important for the model.
+
+# Setting Seed to ensure results are repeatable.
+set.seed(7)
+
+# prepare training scheme
+control <- trainControl(method="repeatedcv", number=10, repeats=3)
+# train the model 
+model <- train(SalePrice~., data=train, method="lvq", preProcess="scale", trControl=control)
+# estimate variable importance
+importance <- varImp(model, scale=FALSE)
+# summarize importance
+print(importance)
+# plot importance
+plot(importance)
+```
+## Create Model 
+```{r}
+fit2 = lm(SalePrice~LotArea , data= train)
+summary(fit2)
+```
+
+
+## Forward Selection 
+
+```{r}
+library(olsrr)
+ols_step_forward_p(fit2, penter = 0.05, details = TRUE)
+
+```
+
+
+
+## Backwards Elimination 
+```{r}
+ols_step_backward_p(fit, prem = 0.05, details = TRUE)
+
+```
+
+
+## Stepwise Selection 
+```{r}
+ols_step_both_p(fit, prem = 0.05, pent = 0.05, details = FALSE)
+
+```
+
+## Custom Model 
 
