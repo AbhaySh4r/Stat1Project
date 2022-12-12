@@ -1,0 +1,78 @@
+---
+title: "Stats Project 2"
+author: Abhay Sharma | AbhaySh4r.github.io
+output:
+  pdf_document: default
+  html_notebook: default
+---
+```{r include=FALSE}
+library(tidyverse)
+```
+
+\tableofcontents
+
+
+\setlength\parindent{18pt}
+\section{Introduction}
+
+For this project, we are provided a housing data set from the website Kaggle that contains a large collection of parameters that are likely to be correlated with the Sale Price of their respective houses. Within this data set we find 79 parameters, some of which must ultimately be used to build a predictive model to extrapolate housing prices given a certain set of these parameters.
+
+The work for this project has been divided into two separate analyses; the first being the generation of a linear model to select and analyze parameters indicating significant correlation between the Sale Price of the houses and the locale that they are in, and the second being the generation of a rudimentary feature selection model using forward selection, backwards elimination, and stepwise selection to predict the prices of houses, whose predictions are ultimately graded by a Kaggle score.
+
+\section{Analysis 1}
+
+For the first analysis, we are commissioned out to analyze and estimate how the Sale Price of houses in Ames Iowa correlate to the square footage in the house, as well as any interactions that might be present with respect to the regions the houses are in. The scope of the analysis focuses primarily on houses within the neighborhoods of \textit{North Ames, Edwards, and Brookside}.
+
+\subsection{Model Generation and Analysis}
+To generate an initial model, we will look at a rudimentary approach to linear regression to see what our data does; 
+
+```{r echo = TRUE, results = 'hide'}
+housing = read.csv(file = "train.csv")
+a1_set = housing %>% select(SalePrice, Neighborhood, GrLivArea) %>% filter( Neighborhood == c("NAmes", "Edwards", "BrkSide"))
+fit <- lm(SalePrice ~ GrLivArea + Neighborhood + GrLivArea*Neighborhood, data = a1_set)
+summary(fit)
+#plot(fit)
+#plot(a1_set$SalePrice, a1_set$GrLivArea)
+```
+
+We can see from visualizations of the plotted model and residuals of the analysis that a transform of variables would greatly improve the quality of the model and associated residuals. Applying a log - log transform and visualizing again, we see: 
+
+```{r echo = TRUE, results = 'hide'}
+fit_transform <- lm(log(SalePrice) ~ log(GrLivArea) + Neighborhood + log(GrLivArea)*Neighborhood, data = a1_set)
+summary(fit_transform)
+confint(fit_transform)
+#plot(log(a1_set$GrLivArea), log(a1_set$SalePrice))
+#plot(fit_transform)
+```
+
+
+We find that the log-log transform has significantly reduced our residuals and given us a much better fit for the linear regression model, represented by bolstering our R^2 compared to the previous non-transformed model. We can see from the residual plots from the transformed fit that there are a few significantly high leverage/low residual points, and one out outlying point with a very high residual and leverage statistic. 
+
+We can also use these plots to analyse the assumptions for our linear model, from which we can see, after the log-log transform, there is not enough evidence to suggest a break in normality, visualized within the generated QQ plots, a statistically significant break in variance, visualized in the plot against both log-transformed variables, and that ... 
+
+\subsection{Parameter Interpretation}
+
+Within the following table, we can see the parameters that our output from our transformed model. From this model, we can pick out the parameter estimates, and analyze which ones are statistically significant and how our final model might look considering significance. 
+
+[picture of R table]
+
+In the table we can see the the parameters significance level, which provides a foundation for the interpretation for what each parameters value means in the scope of the linear model. It's also important to highlight that because the model was developed on a log-log transform model, parameters must be inverse-transformed to pull our their true values. 
+
+The first parameter presented with statistical significance, is the intercept value at \textbf{5.8}. This means that, in the absence of all other variables the y-intercept of this linear model is $2^{5.8} = \textbf{55}$. This intercept has a \textbf{95 percent confidence interval of (20.67, 158)}.
+
+Following that, we have the reference slope value of \textit{GrLivArea} or the total square ft. in each house. We can interpret this value as, we expect to see a $2^0.82$ = \textbf{1.76 multiplicative increase in median Sale Price per doubling of SqFt.}. We have a \textbf{95 percent confidence interval for this increase of (1.53,2.04)}.
+
+The next two parameters are critical as they describe the change in the intercept associated by each region within the model. For this model, the region \textit{BrookSide} is set as the reference region and generates two different modified intercepts to potentially describe any variation that is associated with the presence of multiple regions in the model. From the table, we can pick out that change in intercept for region \textit{Edwards} is not statistically significant compared against a default confidence level of $\alpha = 0.05$, so it might not be relevant to include in the model, whereas the change in the intercept for the \textit{North Ames} region is statistically significant with a \textbf{p-value of 0.003}, indicating that it's inclusion in the model explains a significant amount of the variation within the selected dataset. More importantly, the interpretation of this parameter explains that between \textit{BrookSide} and \textit{North Ames}, assuming for this explanation a constant slope, we can expect to see \textbf{an increased shift in the median sale prices of houses of $e^{2.82} = 16.77$}. The 95% confidence interval for this increase is \textbf{(2.585,107.7)}
+
+Finally, the last two parameters within the model are the change in slope that might occur due to interactions between GvLivArea and Neighborhoods. Of these two paramters, we can see that only the change in slope between \textit{BrookSide} and \textit{North Ames} is statistically significant. The interpretation indicates that, due to the log-log transform, for every doubling of our SqFt, we expect to see a $2^{0.826+(-0.378)} = 2^{0.448} = \textbf{1.38}$ \textbf{multiplicative increase in the Sale Price of houses within the North Ames region}. We can see that the estimated slope of data associated with the \textit{North Ames} region has a smaller slope than the \text{BrookSide} region, indicating the prices of houses in \textit{North Ames} increases at smaller rate compared to the reference. 
+
+\subsection{Conclusion}
+
+From a complete analysis of the parameters in the model, we can create a proper assessment of the different regions and how the pricing changes per region in the data. So far, what we've gathered is houses that are typically in the 
+
+
+
+\section{Appendix}
+
+\subsection{Code for generating model}
+
