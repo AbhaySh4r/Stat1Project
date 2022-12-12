@@ -193,6 +193,7 @@ boxplot(numeric_housing) #<-visualize outliers
 transformed_numeric = numeric_housing
 transformed_numeric$SalePrice = log(transformed_numeric$SalePrice)
 transformed_numeric$LotArea = log(transformed_numeric$LotArea)
+transformed_numeric$GrLivArea = log(transformed_numeric$GrLivArea)
 
 boxplot(transformed_numeric)
 
@@ -334,6 +335,7 @@ Now that we have generated 3 models (Need 4!!!) we can predict the saleprice on 
 #since the original dataset is transformed, the testset needs to be transformed
 #as well to account for the change in base.
 test_housing$LotArea = log(test_housing$LotArea)
+test_housing$GrLivArea = log(test_housing$GrLivArea)
 
 #--------------------------------------------- Backwards Elimination Prediction: 
 
@@ -410,6 +412,6 @@ write.csv(real_sp_joined2, "./Kaggle_stepwiset2_testset.csv", row.names = FALSE)
 
 ```
 
-The rudimentary approach of numeric/reduced linearity set receives a Kaggle score of 0.20855. While is is interesting and good given the novel approach of the selection model, it's troubling to see that all 3 models returned the exact same Kaggle score, down to the last decimal. This may indicate that the models are adding/subtracting parameters to result in the exact same parameter list each time. This should be further investigated. 
+The rudimentary approach of numeric/reduced linearity set receives a Kaggle score of 0.20141. While is is interesting and good given the novel approach of the selection model, it's troubling to see that all 3 models returned the exact same Kaggle score, down to the last decimal. This may indicate that the models are adding/subtracting parameters to result in the exact same parameter list each time. This should be further investigated. 
 
 
