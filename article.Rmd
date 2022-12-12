@@ -115,6 +115,7 @@ Next, we removed the following highly correlated variables to reduce multicollin
 ```{r}
 corrplot(cor(t1))
 ```
+Assumptions 
 
 Stepwise Selection
 

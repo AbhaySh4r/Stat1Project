@@ -5,7 +5,8 @@ output: html_notebook
 
 # ANALYSIS 1 
 
-Goal: Estimate how SalesPrice of the house is related to the square footage of the living area of the house & if SalesPrice (and its relationship to square footage) depends on which neighborhood the house is located in. We are only interested at looking at houses in the NAmes, Edwards & BrkSide neighborhoods. 
+## Restatement of the Problem 
+Estimate how SalesPrice of the house is related to the square footage of the living area of the house & if SalesPrice (and its relationship to square footage) depends on which neighborhood the house is located in. We are only interested at looking at houses in the NAmes, Edwards & BrkSide neighborhoods. 
 
 ## Packages
 ```{r}
@@ -39,6 +40,7 @@ str(train_a1)
 ```
 ## EDA 
 
+From an initial examination of the scatter plots and histograms, 
 
 ```{r}
 train_a1 %>% ggplot(aes(x = (GrLivArea), y = SalePrice/1000, color = Neighborhood)) + geom_point() + stat_smooth(method = "lm")
@@ -62,6 +64,8 @@ train_a1 %>% ggplot(aes(x = log(GrLivArea), y = log(SalePrice/1000), color = Nei
 ```
 
 ## Linear Model 
+
+From a visual inspection of the Cook's D and residual plot, we notice there are 3 outliers: 
 ```{r}
 fit1 <- lm(log(SalePrice) ~ log(GrLivArea) + Neighborhood + GrLivArea*Neighborhood, data = train_a1)
 summary(fit1)

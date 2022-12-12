@@ -50,6 +50,10 @@ a1_set = housing %>% select(SalePrice, Neighborhood, GrLivArea) %>% filter( Neig
 We can take a look at the dataset and visualize what the datalooks like with some cursory visuals. During this step, we want to analyze any heavy correlation that the dataset might have, and account for it in any of our developing models;  
 
 ```{r}
+a1_set %>% filter(Neighborhood == "NAmes") %>% ggplot(aes(x = (GrLivArea), y = SalePrice/1000)) + geom_point() + ggtitle("NAmes Neighborhood Price of Home vs. Square Footage")
+```
+
+```{r}
 
 a1_set %>% ggplot(aes(x = (GrLivArea), y = SalePrice/1000, color = Neighborhood)) + geom_point() + stat_smooth(method = "lm")
 
