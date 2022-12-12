@@ -31,8 +31,9 @@ For the first analysis, we are commissioned out to analyze and estimate how the 
 \subsection{Model Generation and Analysis}
 To generate an initial model, we will look at a rudimentary approach to linear regression to see what our data does; 
 
-```{r echo = TRUE, results = 'hide'}
+```{r echo = TRUE, results = 'hide', warning=FALSE}
 housing = read.csv(file = "train.csv")
+numeric_housing = housing %>% select_if(is.numeric)
 a1_set = housing %>% select(SalePrice, Neighborhood, GrLivArea) %>% filter( Neighborhood == c("NAmes", "Edwards", "BrkSide"))
 fit <- lm(SalePrice ~ GrLivArea + Neighborhood + GrLivArea*Neighborhood, data = a1_set)
 summary(fit)
@@ -82,8 +83,43 @@ From a complete analysis of the parameters in the model, we can create a proper 
 
 \section{Analysis 2}
 
-For the second analysis in this project, 
+For the second analysis in this project, we have been tasked to build a predictive model that predicts the salary of houses provided the parameters of the dataset. The scope of this prediction is more general than the previous analysis question, focusing on the entire state of Iowa. Ultimately, the goal of these prediction is to compete against a known set on the website \textit{Kaggle} to receive a Kaggle score, demonstrating how accurate our prediction are. 
 
+\subsection{Model Selection and Generation}
+
+Although we will be generating linear models for this analysis, the parameters for the model will be selected by a variety of selection methods, including, \textbf{forward selection, backwards elimination, and stepwise selection}. We will also be testing a set for which we select our own parameters to see how competitive we can get.
+
+To generate the models, we must take an approach to limit the multicollinearity of the dataset, otherwise the selection models will not work. To do this, we can create a correlation plot of all the numeric values within the dataset, and visualize which values are highly correlated. 
+
+```{r}
+transformed_numeric = numeric_housing
+selected = subset(transformed_numeric, select = -c(LotFrontage, MasVnrArea, GarageYrBlt))
+corrplot(cor(selected), tl.cex = 0.5)
+```
+From this plot, we can eyeball the selection of highly correlated values, including \textit{"OverallQual, TotRmsAbvGrd, GarageCars, TotalBsmtSF, X1stFlrSF, X2ndFlrSF, FullBath"}. By removing these variables from the dataset, we reduce the colinearity of the set and allow for a better feature selection process. 
+
+Running an initial backward selection model, we generate a series of residual plots that we can see below: 
+
+
+From the residual plots, we can see that due to the cloud-like random scattering of residuals, we've roughly explained the variations within the dataset with our model, this additionaly shows that there is no glaring breaks in variance. From the same plots, we can see that there is not sufficient evidence for any deviations from normality, seen in the QQ plots.We can additionalyly look at the VIFs for each model to numerically confirm that multicollinearity has been accounted for, with all numerical values falling below 3.
+
+
+Results Table: 
+
+\begin{center}
+\begin{tabular}{ |c|c|c|c| } 
+ \hline
+ Predictive Models & Adjusted R2 & CV PRESS & Kaggle Score \\ 
+ \hline
+ Forward & 0.8805 & 28.09 & 0.20061 \\
+ \hline
+ Backward & 0.8812 & 28.12 & 0.20061 \\
+ \hline
+ Stepwise & 0.8805 & 28.22 & 0.1814 \\
+ \hline
+ Custom & 
+\end{tabular}
+\end{center}
 
 \section{Appendix}
 
@@ -108,7 +144,7 @@ CVPress <- function(input_model){
 
 \subsection{Code for generating linear model}
 
-```{r echo = TRUE, results = 'hide', fig.show= 'hide'}
+```{r echo = TRUE, results = 'hide', fig.show= 'hide', warning=FALSE}
 
 housing = read.csv(file = "train.csv")
 test_housing = read.csv(file = "test.csv")
@@ -140,7 +176,7 @@ ModelRMSE(fit_transform$residuals) # RMSE Value of 0.1973
 
 train.control1 = trainControl(method = "cv", number = 10)
 model1 <- train(SalePrice ~ GrLivArea + Neighborhood + GrLivArea*Neighborhood, data = a1_set, method = "lm", trControl = train.control1)
-CVPress(model1$model)# doesn't work atm
+#CVPress(model1$model) # doesn't work atm
 
 ```
 

@@ -157,7 +157,10 @@ CVPress(transForward$model)
 ```
 
 ```{r Reduced Linearity Set}
-t1 = subset(transformed_numeric, select = -c(LotFrontage, MasVnrArea, GarageYrBlt, OverallQual, TotRmsAbvGrd, GarageCars, TotalBsmtSF, X1stFlrSF, X2ndFlrSF, FullBath )) 
+t1 = subset(transformed_numeric, select = -c(LotFrontage, MasVnrArea, GarageYrBlt, OverallQual, TotRmsAbvGrd, GarageCars, TotalBsmtSF, X1stFlrSF, X2ndFlrSF, FullBath ))
+
+t1 = t1[-c(524,1299),] #removing outliers -524, 1299 for outlying lot area 
+
 #removal of largely correlated values to reduce multicollinearity (VIF /approx 1) and actually allow back-elimination to run,
 #it wasn't running without a ton of errors without this. 
 
@@ -166,8 +169,8 @@ corrplot(cor(t1)) #visualize correlation to identify which plots are correlated.
 t1fit = lm(SalePrice ~. , data = t1)
 
 backt1 = ols_step_backward_p(t1fit, prem = 0.05, details = FALSE)
-forwardt1 = ols_step_forward_p(t1fit, penter = 0.05, details = FALSE)               #the p-values for these should be fiddled with, 
-stepwiset1 = ols_step_both_p(t1fit, pent = 0.05, prem =0.05, details = FALSE)
+forwardt1 = ols_step_forward_p(t1fit, penter = 0.1, details = FALSE)               #the p-values for these should be fiddled with, 
+stepwiset1 = ols_step_both_p(t1fit, pent = 0.05, prem =0.01, details = FALSE)
 
 mystery4thsetWIP
 
