@@ -68,11 +68,36 @@ Finally, the last two parameters within the model are the change in slope that m
 
 \subsection{Conclusion}
 
-From a complete analysis of the parameters in the model, we can create a proper assessment of the different regions and how the pricing changes per region in the data. So far, what we've gathered is houses that are typically in the 
+From a complete analysis of the parameters in the model, we can create a proper assessment of the different regions and how the pricing changes per region in the data. From the parameters, what we've gathered is houses that are typically in the N. Ames region start at higher pricing, but scale their pricing slower with respect to sq. ft. compared to houses that are within the Brookside region. Although the Edwards housing region has marginally varying statistics to the Brookside region, they are not statistically significant enough to indicate any explain any variation by themselves, and thus housing prices should follow the same trend. 
 
+
+\section{Analysis 2}
+
+For the second analysis in this project, 
 
 
 \section{Appendix}
 
-\subsection{Code for generating model}
+\subsection{Code for generating linear model}
+
+```{r echo = TRUE, results = 'hide', fig.show= 'hide'}
+
+housing = read.csv(file = "train.csv")
+a1_set = housing %>% select(SalePrice, Neighborhood, GrLivArea) %>% filter( Neighborhood == c("NAmes", "Edwards", "BrkSide")) #pull dataset into R, select paramters for A1.
+fit <- lm(SalePrice ~ GrLivArea + Neighborhood + GrLivArea*Neighborhood, data = a1_set) #initial naive model, no transform
+summary(fit)
+
+#----------------
+
+fit_transform <- lm(log(SalePrice) ~ log(GrLivArea) + Neighborhood + log(GrLivArea)*Neighborhood, data = a1_set) #transformed model to improve residuals and assumptions
+summary(fit_transform)
+confint(fit_transform)
+
+```
+
+\subsection{Code for generating selection model}
+
+```{r}
+
+```
 
