@@ -96,7 +96,10 @@ From a complete analysis of the parameters in the model, we can create a proper 
 For the second analysis in this project, we were tasked to generate 4 models using variations of parameters selected by Forward Selection, Backwards Elimination, Stepwise Selection, and a personalized approach. Using these paramters, we can generate Adjusted R\^2 values, CV Press statistics, and finally submit our model to the Kaggle website to obtain a "Kaggle Score" for each model.
 
 ```{r}
-plot(t1fit)
+plot(fit_numeric)
+```
+```{r}
+plot(transformed_fit) 
 ```
 
 To improve the quality of our model, we decided to remove outliers as analaysis shows marginal improvements to R\^2 and marginal deterioration to the Press Statistic. We notice the following outliers:
@@ -104,6 +107,8 @@ To improve the quality of our model, we decided to remove outliers as analaysis 
 -   Excessively Expensive \> 700k SalePrice: ID #692 & \# 1183
 
 -   Excessively Large \> 100k sq ft.: ID #314, #226, #256, #707
+
+
 
 Next, we removed the following highly correlated variables to reduce multicollinearity: LotFrontage, MasVnrArea, GarageYrBlt, OverallQual, TotRmsAbvGrd, GarageCars, TotalBsmtSF, X1stFlrSF, X2ndFlrSF, FullBath. In the correlation matrix, we can see which plots are correlated. After the elimination of the variables mentioned, we see more fairly spare correlated variables.
 
@@ -269,3 +274,28 @@ write.csv(real_sp_joined, "./Kaggle_stepwiset1_testset.csv", row.names = FALSE)
 
 
 ```
+
+```{r}
+#I'm not sure if this is the best way to do it, but it highlights the requirement of the transform
+
+boxplot(numeric_housing) #<-visualize outliers
+
+#filtered_nh = numeric_housing[-c(692, 1183, 314, 336, 256, 707), ] #filters out outliers 
+#filtered_nh$SalePrice = log(filtered_nh$SalePrice) 
+#filtered_nh$LotArea = log(filtered_nh$LotArea)
+
+transformed_numeric = numeric_housing
+transformed_numeric$SalePrice = log(transformed_numeric$SalePrice)
+transformed_numeric$LotArea = log(transformed_numeric$LotArea)
+transformed_numeric$GrLivArea = log(transformed_numeric$GrLivArea)
+
+boxplot(transformed_numeric)
+
+transformed_fit = lm(SalePrice ~., data = transformed_numeric)
+
+transForward = ols_step_forward_p(transformed_fit, penter = 0.05, details = FALSE)
+
+transForward
+summary(transForward$model)
+ModelRMSE(transForward$model$residuals) #see defined functions at top of document
+CVPress(transForward$model)
