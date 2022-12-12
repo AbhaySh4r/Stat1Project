@@ -1,8 +1,11 @@
 ---
 title: "Stats Project 2"
-author: Abhay Sharma | AbhaySh4r.github.io
+author: 
+  - Abhay Sharma | AbhaySh4r.github.io
+  - Carolina Craus | carolinacraus.github.io
 output:
-  pdf_document: default
+  pdf_document:
+    extra_dependencies: ['graphicx']
   html_notebook: default
 ---
 ```{r include=FALSE}
@@ -13,14 +16,18 @@ library(caret)
 library(olsrr)
 library(corrplot)
 ```
+\graphicspath{ {./images/} }
 
 \tableofcontents
 
+\\
+
+\textbf{Rshiny APP: https://carolinacraus.shinyapps.io/HousingApp/}
 
 \setlength\parindent{18pt}
 \section{Introduction}
 
-For this project, we are provided a housing data set from the website Kaggle that contains a large collection of parameters that are likely to be correlated with the Sale Price of their respective houses. Within this data set we find 79 parameters, some of which must ultimately be used to build a predictive model to extrapolate housing prices given a certain set of these parameters.
+For this project, we are provided a housing data set from the website Kaggle that contains a large collection of parameters that are likely to be correlated with the Sale Price of their respective houses. This dataset was built and provided by Century 21 Ames. Within this data set we find 81 parameters and 1460 rows, some of which must ultimately be used to build a predictive model to extrapolate housing prices given a certain set of these parameters. Key variables to take note are \textit{GrLIvArea} which is defined as \textit{Above ground living area}; \textit{Neighborhood}, which is the region that each house is from, and \textit{SalePrice}, which is the price that the house was sold for. 
 
 The work for this project has been divided into two separate analyses; the first being the generation of a linear model to select and analyze parameters indicating significant correlation between the Sale Price of the houses and the locale that they are in, and the second being the generation of a rudimentary feature selection model using forward selection, backwards elimination, and stepwise selection to predict the prices of houses, whose predictions are ultimately graded by a Kaggle score.
 
@@ -29,32 +36,19 @@ The work for this project has been divided into two separate analyses; the first
 For the first analysis, we are commissioned out to analyze and estimate how the Sale Price of houses in Ames Iowa correlate to the square footage in the house, as well as any interactions that might be present with respect to the regions the houses are in. The scope of the analysis focuses primarily on houses within the neighborhoods of \textit{North Ames, Edwards, and Brookside}.
 
 \subsection{Model Generation and Analysis}
-To generate an initial model, we will look at a rudimentary approach to linear regression to see what our data does; 
+To generate an initial model, we will look at a rudimentary approach to linear regression to see what our data does. Generating this model, seen in the Appendix results in the following residual plot.
 
-```{r echo = TRUE, results = 'hide', warning=FALSE}
-housing = read.csv(file = "train.csv")
-numeric_housing = housing %>% select_if(is.numeric)
-a1_set = housing %>% select(SalePrice, Neighborhood, GrLivArea) %>% filter( Neighborhood == c("NAmes", "Edwards", "BrkSide"))
-fit <- lm(SalePrice ~ GrLivArea + Neighborhood + GrLivArea*Neighborhood, data = a1_set)
-summary(fit)
-#plot(fit)
-#plot(a1_set$SalePrice, a1_set$GrLivArea)
-
-#put the plots here
+```{r, echo=FALSE,fig.cap="Residuals for standard linear model"}
+knitr::include_graphics("./images/residuals_fit.png")
 ```
+
+
 
 We can see from visualizations of the plotted model and residuals of the analysis that a transform of variables would greatly improve the quality of the model and associated residuals. Applying a log - log transform and visualizing again, we see: 
 
-```{r echo = TRUE, results = 'hide'}
-fit_transform <- lm(log(SalePrice) ~ log(GrLivArea) + Neighborhood + log(GrLivArea)*Neighborhood, data = a1_set)
-summary(fit_transform)
-confint(fit_transform)
-#plot(log(a1_set$GrLivArea), log(a1_set$SalePrice))
-#plot(fit_transform)
-
-#put the plots here
+```{r, echo=FALSE,fig.cap="Residuals for transformed linear model"}
+knitr::include_graphics("./images/residuals_fit_transform_image.png")
 ```
-
 
 We find that the log-log transform has significantly reduced our residuals and given us a much better fit for the linear regression model, represented by bolstering our R^2 compared to the previous non-transformed model. We can see from the residual plots from the transformed fit that there are a few significantly high leverage/low residual points, and one out outlying point with a very high residual and leverage statistic. We can also verify from the adjusted $R^2$ and RMSE from each model that the transformed model fits the data much better than the a non-transformed model. 
 
@@ -64,7 +58,10 @@ We can also use these plots to analyse the assumptions for our linear model, fro
 
 Within the following table, we can see the parameters that our output from our transformed model. From this model, we can pick out the parameter estimates, and analyze which ones are statistically significant and how our final model might look considering significance. 
 
-[picture of R table]
+
+```{r, echo=FALSE,fig.cap="Output Paramters of Model Summary", out.width= "60%",fig.align='center'}
+knitr::include_graphics("./images/transform_paramters.png")
+```
 
 In the table we can see the the parameters significance level, which provides a foundation for the interpretation for what each parameters value means in the scope of the linear model. It's also important to highlight that because the model was developed on a log-log transform model, parameters must be inverse-transformed to pull our their true values. 
 
@@ -91,20 +88,23 @@ Although we will be generating linear models for this analysis, the parameters f
 
 To generate the models, we must take an approach to limit the multicollinearity of the dataset, otherwise the selection models will not work. To do this, we can create a correlation plot of all the numeric values within the dataset, and visualize which values are highly correlated. 
 
-```{r}
-transformed_numeric = numeric_housing
-selected = subset(transformed_numeric, select = -c(LotFrontage, MasVnrArea, GarageYrBlt))
-corrplot(cor(selected), tl.cex = 0.5)
+```{r, echo=FALSE,fig.cap="Correlation Matrix"}
+knitr::include_graphics("./images/numerical_correlation.png")
 ```
+
 From this plot, we can eyeball the selection of highly correlated values, including \textit{"OverallQual, TotRmsAbvGrd, GarageCars, TotalBsmtSF, X1stFlrSF, X2ndFlrSF, FullBath"}. By removing these variables from the dataset, we reduce the colinearity of the set and allow for a better feature selection process. 
 
 Running an initial backward selection model, we generate a series of residual plots that we can see below: 
 
+```{r, echo=FALSE,fig.cap="Residuals for backwards elimination model"}
+knitr::include_graphics("./images/residuals_backt1.png")
+```
 
 From the residual plots, we can see that due to the cloud-like random scattering of residuals, we've roughly explained the variations within the dataset with our model, this additionaly shows that there is no glaring breaks in variance. From the same plots, we can see that there is not sufficient evidence for any deviations from normality, seen in the QQ plots.We can additionalyly look at the VIFs for each model to numerically confirm that multicollinearity has been accounted for, with all numerical values falling below 3.
 
+\subsection{Comparing Competing Models}
 
-Results Table: 
+The following is the Results Table, from which we can analyze core components of each selection model: 
 
 \begin{center}
 \begin{tabular}{ |c|c|c|c| } 
@@ -117,9 +117,21 @@ Results Table:
  \hline
  Stepwise & 0.8805 & 28.22 & 0.1814 \\
  \hline
- Custom & 
+ Custom & 0.846 & 38.28 & 0.20293 \\
+ \hline
 \end{tabular}
 \end{center}
+
+For the models, we restricted paramter selection to only numeric and limited coorelated parameters. This initial approach led to competitive and interesting Kaggle scores. However, our custom approach intended on adding categorical variables to identify more interactions. Our initial approach seemed to lower our Kaggle score, so we didn't pursue that specific model more than what we had. 
+
+Ideally we believe that a proper execution of adding in categorical variables to the selection pool should result in a decreased Kaggle Score. 
+
+
+\subsection{Conclusion}
+
+  For Analysis 2, we were required to create 4 prediction models that, that atleast somewhat accurately predicted the sale price of houses sold within the Ames Iowa region. To use the data, we had to address issues of outliers and multicollinearity within the dataset, and narrowed our functional dataset to only numerical values. Using forwards selection, backwards elimination, stepwise selection, and our own custom selected parameter approach, we generated mildly competitive prediction results with Kaggle scores of \textbf{0.20061, 0.20061, 0.1814, 0.20293}, respectively. For the custom approach, although we did not see large gains, we believe that the approach of introducing categorical variables can be successful and should be studied more, for a more thorough model. 
+
+\newpage
 
 \section{Appendix}
 
@@ -145,6 +157,7 @@ CVPress <- function(input_model){
 \subsection{Code for generating linear model}
 
 ```{r echo = TRUE, results = 'hide', fig.show= 'hide', warning=FALSE}
+
 
 housing = read.csv(file = "train.csv")
 test_housing = read.csv(file = "test.csv")
@@ -263,6 +276,54 @@ real_sp_joined[is.na(real_sp_joined)]<-10000
 colnames(real_sp_joined) = c("Id", "SalePrice")
 write.csv(real_sp_joined, "./Kaggle_stepwiset1_testset.csv", row.names = FALSE)
 
+## Custom Model: # Change categorical values to numeric
+housing2 = housing
+housing2$Neighborhood <- as.numeric(factor(housing2$Neighborhood,
+                                                        levels = c("Blmngtn", "Blueste", "BrDale"),
+                                                        labels = c(2,1,0), ordered = TRUE))
+housing2$LotConfig <- as.numeric(factor(housing2$LotConfig,
+                                                        levels = c("Inside", "Corner", "CulDSac", "FR2", "FR3"),
+                                                        labels = c(4,3,2,1,0), ordered = TRUE))
+housing2$ExterQual <- as.numeric(factor(housing2$ExterQual,
+                                                        levels = c("Ex", "Gd", "TA", "Fa", "Po"),
+                                                        labels = c(4, 3, 2,1,0), ordered = TRUE))
+housing2$BsmtQual <- as.numeric(factor(housing2$BsmtQual,
+                                                        levels = c("Ex", "Gd", "TA", "Fa", "Po"),
+                                                        labels = c(4, 3, 2,1,0), ordered = TRUE))
 
+
+normal_housing = housing 
+normal_set = normal_housing %>% select(SaleCondition) %>% filter( SaleCondition == c("Normal"))
+normal_housing = normal_housing %>% select_if(is.numeric)
+normal_housing$SalePrice = log(normal_housing$SalePrice)
+normal_housing$GrLivArea = log(normal_housing$GrLivArea)
+
+t2 = subset(normal_housing, select = -c(LotFrontage, MasVnrArea, GarageYrBlt, OverallQual, TotRmsAbvGrd, GarageCars, TotalBsmtSF, X1stFlrSF, X2ndFlrSF, FullBath )) 
+#removal of largely correlated values to reduce multicollinearity (VIF /approx 1) and actually allow back-elimination to run,
+#it wasn't running without a ton of errors without this. 
+corrplot(cor(t2)) #visualize correlation to identify which plots are correlated. After elimiation, it should be fairly sparsely correlated. 
+t2fit = lm(SalePrice ~. , data = t2)
+backt2 = ols_step_backward_p(t2fit, prem = 0.05, details = FALSE)
+forwardt2 = ols_step_forward_p(t2fit, penter = 0.05, details = FALSE)               #the p-values for these should be fiddled with, 
+stepwiset2 = ols_step_both_p(t2fit, pent = 0.05, prem =0.01, details = FALSE)
+forwardt2
+backt2
+stepwiset2
+#mystery4thsetWIP
+#---------------------------------Summary Stats of the produced RL sets
+summary(backt2$model)
+vif(backt2$model)
+ModelRMSE(backt2$model$residuals)
+CVPress(backt2$model)
+#---------------------------------
+summary(forwardt2$model)
+vif(forwardt2$model)
+ModelRMSE(forwardt2$model$residuals)
+CVPress(forwardt2$model)
+#---------------------------------
+summary(stepwiset2$model)
+vif(stepwiset2$model)
+ModelRMSE(stepwiset2$model$residuals)
+CVPress(stepwiset2$model)
 ```
   
