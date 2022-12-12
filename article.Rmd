@@ -102,13 +102,13 @@ plot(fit_numeric)
 plot(transformed_fit) 
 ```
 
-To improve the quality of our model, we decided to remove outliers as analaysis shows marginal improvements to R\^2 and marginal deterioration to the Press Statistic. We notice the following outliers:
+To improve the quality of our model, we look at outliers as analaysis shows marginal improvements to R\^2 and marginal deterioration to the Press Statistic. We notice the following outliers:
 
 -   Excessively Expensive \> 700k SalePrice: ID #692 & \# 1183
 
 -   Excessively Large \> 100k sq ft.: ID #314, #226, #256, #707
 
-
+However, removing them did not improve the model, so we decided to leave them in. 
 
 Next, we removed the following highly correlated variables to reduce multicollinearity: LotFrontage, MasVnrArea, GarageYrBlt, OverallQual, TotRmsAbvGrd, GarageCars, TotalBsmtSF, X1stFlrSF, X2ndFlrSF, FullBath. In the correlation matrix, we can see which plots are correlated. After the elimination of the variables mentioned, we see more fairly spare correlated variables.
 
@@ -120,7 +120,7 @@ Stepwise Selection
 
 Regression model:
 
-Mean(SalePrice) = b0 + b1(OverallQual) + b2(OverallCond) + b3(YearBuilt) + b4(
+Mean(SalePrice) = b0 + b1(LotArea) + b2(OverallCond) + b3(YearBuilt) + b4(YearRemodAdd) + b5(BsmtFinSF1) + b6(BsmtFinSF2) + b7(BsmtFinSF3) + b8(GrLivArea) + b9(BsmtFullBath) + b10(KitchenAbvGr) + b11(Fireplaces) + b12(GarageArea) + b13(WoodDeckSF) + b14(EnclosedPorch) + b15(ScreenPorch) + b16(PoolArea) + b17(YrSold)
 
 ## Model Results
 
